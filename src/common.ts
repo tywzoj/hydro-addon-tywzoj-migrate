@@ -1,7 +1,8 @@
-import { IMigrateArgs, IMigrateCtx } from "./types";
-import mariadb from 'mariadb';
+import mariadb from "mariadb";
 
-export async function createContext(args: IMigrateArgs): Promise<IMigrateCtx> {
+import type { IMigrateArgs, IMigrateContext } from "./types";
+
+export async function createContext(args: IMigrateArgs, report: (data: any) => void): Promise<IMigrateContext> {
     const conn = await mariadb.createConnection({
         host: args.dbHost,
         port: args.dbPort,
@@ -10,5 +11,5 @@ export async function createContext(args: IMigrateArgs): Promise<IMigrateCtx> {
         database: args.dbName,
         connectTimeout: 15000,
     });
-    return { conn, args };
+    return { conn, args, report };
 }

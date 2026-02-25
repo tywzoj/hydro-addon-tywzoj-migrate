@@ -1,7 +1,7 @@
-import { Connection } from "mariadb";
+import type { Connection } from "mariadb";
 
 export type E_MigrateModules = "problem" | "user" | "submission" | "contest" | "homework";
-export type E_RandomMail = 'never' | 'needed' | 'always';
+export type E_RandomMail = "never" | "needed" | "always";
 
 export interface IMigrateArgs {
     dbHost: string;
@@ -14,9 +14,11 @@ export interface IMigrateArgs {
     dataDir: string;
     modules: E_MigrateModules[];
     randomMail: E_RandomMail;
+    rerun: boolean;
 }
 
-export interface IMigrateCtx {
+export interface IMigrateContext {
     conn: Connection;
     args: IMigrateArgs;
+    report: (data: any) => void;
 }

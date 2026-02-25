@@ -1,6 +1,8 @@
 {
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4",
     "@types/node": "^25.3.0",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
@@ -13,6 +15,8 @@
     "typescript-eslint": "^8.56.1"
   },
   "dependencies": {
+    "fs-extra": "^11.3.3",
+    "js-yaml": "^4.1.1",
     "mariadb": "^3.5.1"
   },
   "packageManager": "yarn@4.12.0+sha512.f45ab632439a67f8bc759bf32ead036a1f413287b9042726b7cc4818b7b49e14e9423ba49b18f9e06ea4941c1ad062385b1d8760a8d5091a1a31e5f6219afca8",
