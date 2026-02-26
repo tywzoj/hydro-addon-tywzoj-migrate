@@ -1,34 +1,33 @@
 import type { Context } from "hydrooj";
 import { Schema } from "hydrooj";
 
-import { createContext } from "./common";
+import { createContext, shouldMigrateModule } from "./common";
 import { ensureDomain } from "./domain";
 import { migrateProblem } from "./problem";
 import type { IMigrateArgs } from "./types";
 
 async function migrate(args: IMigrateArgs, report: (data: any) => void): Promise<boolean> {
     const ctx = await createContext(args, report);
-    const { modules } = args;
 
     await ensureDomain(ctx);
 
-    if (modules.includes("user")) {
+    if (shouldMigrateModule(ctx, "user")) {
         // TODO: migrate user
     }
 
-    if (modules.includes("problem")) {
+    if (shouldMigrateModule(ctx, "problem")) {
         await migrateProblem(ctx);
     }
 
-    if (modules.includes("submission") && modules.includes("problem") && modules.includes("user")) {
+    if (shouldMigrateModule(ctx, "submission", ["problem", "user"])) {
         // TODO: migrate submission
     }
 
-    if (modules.includes("contest") && modules.includes("problem") && modules.includes("user")) {
+    if (shouldMigrateModule(ctx, "contest", ["problem", "user"])) {
         // TODO: migrate contest
     }
 
-    if (modules.includes("homework") && modules.includes("problem") && modules.includes("user")) {
+    if (shouldMigrateModule(ctx, "homework", ["problem", "user"])) {
         // TODO: migrate homework
     }
 

@@ -147,7 +147,7 @@ interface IMigrateProblemContext extends IMigrateContext {
     levelPidMap: Record<number, string[]>;
 }
 
-async function migrateProblemTags(ctx: IMigrateProblemContext): Promise<Record<number, string>> {
+async function migrateTags(ctx: IMigrateProblemContext): Promise<Record<number, string>> {
     const { conn, report, tagIdNameMap } = ctx;
 
     const allTags: IProblemTag[] = await conn.query("SELECT * FROM `problem_tag`");
@@ -157,7 +157,7 @@ async function migrateProblemTags(ctx: IMigrateProblemContext): Promise<Record<n
     return tagIdNameMap;
 }
 
-async function migrateProblemContent(ctx: IMigrateProblemContext) {
+async function migrateContent(ctx: IMigrateProblemContext) {
     const {
         conn,
         report,
@@ -265,7 +265,7 @@ async function migrateAdditionalFiles(ctx: IMigrateProblemContext): Promise<void
     report({ message: "additional files finished" });
 }
 
-export async function migrateTestdata(ctx: IMigrateProblemContext) {
+async function migrateTestdata(ctx: IMigrateProblemContext) {
     const {
         report,
         args: { problemDomain, dataDir },
@@ -377,7 +377,7 @@ export async function migrateTestdata(ctx: IMigrateProblemContext) {
     }
 }
 
-export async function migrateDomainCopy(ctx: IMigrateProblemContext) {
+async function migrateDomainCopy(ctx: IMigrateProblemContext) {
     const {
         report,
         args: { problemDomain, levelDomainMapping },
@@ -428,11 +428,13 @@ export async function migrateProblem(ctx: IMigrateContext): Promise<boolean> {
     // additional files <- problem content
     // testdata <- problem content
     // domain copy <- problem content, additional files, testdata
-    await migrateProblemTags(pctx);
-    await migrateProblemContent(pctx);
+    await migrateTags(pctx);
+    await migrateContent(pctx);
     await migrateAdditionalFiles(pctx);
     await migrateTestdata(pctx);
     await migrateDomainCopy(pctx);
+
+    ctx.migratedModules.push("problem");
 
     return true;
 }

@@ -20,5 +20,6 @@ export interface IMigrateArgs {
 export interface IMigrateContext {
     conn: Connection;
     args: IMigrateArgs;
+    migratedModules: E_MigrateModules[];
     report: (data: any) => void;
 }
