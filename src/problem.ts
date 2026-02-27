@@ -229,9 +229,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                 }
             }
 
-            if (problemRow.allow_level > 0) {
-                levelPidMap[problemRow.allow_level].push(pid);
-            }
+            levelPidMap[problemRow.allow_level].push(pid);
         }
     }
     report({ message: "problem finished" });
@@ -385,7 +383,10 @@ async function migrateDomainCopy(ctx: IMigrateProblemContext) {
         pidMap,
     } = ctx;
 
-    for (const [level, targetDomain] of Object.entries(levelDomainMapping)) {
+    for (const [level, targetDomain] of Object.entries({
+        "0": "system",
+        ...levelDomainMapping,
+    })) {
         const pids = levelPidMap[Number(level)];
         for (const pid of pids) {
             const pdoc = await ProblemModel.get(problemDomain, pidMap[pid], undefined, true);
