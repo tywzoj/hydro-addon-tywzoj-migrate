@@ -255,7 +255,7 @@ async function migrateAdditionalFiles(ctx: IMigrateProblemContext): Promise<void
         await ProblemModel.addAdditionalFile(
             problemDomain,
             pidMap[pid],
-            `${pid}_additional_file`,
+            `${pid}_additional_file.zip`,
             path.join(additionalFilePath, file.name),
         );
     }
