@@ -181,55 +181,60 @@ async function migrateContent(ctx: IMigrateProblemContext) {
         for (const problemRow of problemRows) {
             const pid = `P${problemRow.id}`;
 
-            if (rerun) {
-                const pdoc = await ProblemModel.get(problemDomain, pid);
-                if (pdoc) pidMap[pid] = pdoc.docId;
-            }
-
-            if (!pidMap[pid]) {
-                const content = buildContent({
-                    description: problemRow.description,
-                    input: problemRow.input_format,
-                    output: `${problemRow.output_format}\n## Sample\n${problemRow.example}`,
-                    samples: [],
-                    hint: problemRow.limit_and_hint,
-                });
-                const newPid = await ProblemModel.add(problemDomain, pid, problemRow.title, content, 1);
-                pidMap[pid] = newPid;
-            }
-
-            const tagRows: { tag_id: number }[] = await conn.query(
-                "SELECT * FROM `problem_tag_map` WHERE `problem_id` = ?",
-                [problemRow.id],
-            );
-            const tags = tagRows.map((tagRow) => tagIdNameMap[tagRow.tag_id]);
-
-            await ProblemModel.edit(problemDomain, pidMap[pid], {
-                nAccept: migrateSubmission ? problemRow.ac_num || 0 : 0,
-                nSubmit: migrateSubmission ? problemRow.submit_num || 0 : 0,
-                hidden: problemRow.is_public !== 1,
-                tag: tags,
-            });
-
-            pidConfigYamlMap[pid].type = typeMap[problemRow.type];
-            pidConfigYamlMap[pid].time = `${problemRow.time_limit}ms`;
-            pidConfigYamlMap[pid].memory = `${problemRow.memory_limit}MB`;
-
-            if (problemRow.file_io) {
-                pidConfigYamlMap[pid].filename = path.basename(problemRow.file_io_input_name!);
-            }
-
-            if (problemRow.additional_file_id) {
-                const additionalFileRows: [{ md5: string }] = await conn.query("SELECT * FROM `file` WHERE `id` = ?", [
-                    problemRow.additional_file_id,
-                ]);
-                if (additionalFileRows.length) {
-                    const [afdoc] = additionalFileRows;
-                    additionalFilePidMap[afdoc.md5] = pid;
+            try {
+                if (rerun) {
+                    const pdoc = await ProblemModel.get(problemDomain, pid);
+                    if (pdoc) pidMap[pid] = pdoc.docId;
                 }
-            }
 
-            levelPidMap[problemRow.allow_level].push(pid);
+                if (!pidMap[pid]) {
+                    const content = buildContent({
+                        description: problemRow.description,
+                        input: problemRow.input_format,
+                        output: `${problemRow.output_format}\n## Sample\n${problemRow.example}`,
+                        samples: [],
+                        hint: problemRow.limit_and_hint,
+                    });
+                    const newPid = await ProblemModel.add(problemDomain, pid, problemRow.title, content, 1);
+                    pidMap[pid] = newPid;
+                }
+
+                const tagRows: { tag_id: number }[] = await conn.query(
+                    "SELECT * FROM `problem_tag_map` WHERE `problem_id` = ?",
+                    [problemRow.id],
+                );
+                const tags = tagRows.map((tagRow) => tagIdNameMap[tagRow.tag_id]);
+
+                await ProblemModel.edit(problemDomain, pidMap[pid], {
+                    nAccept: migrateSubmission ? problemRow.ac_num || 0 : 0,
+                    nSubmit: migrateSubmission ? problemRow.submit_num || 0 : 0,
+                    hidden: problemRow.is_public !== 1,
+                    tag: tags,
+                });
+
+                pidConfigYamlMap[pid].type = typeMap[problemRow.type];
+                pidConfigYamlMap[pid].time = `${problemRow.time_limit}ms`;
+                pidConfigYamlMap[pid].memory = `${problemRow.memory_limit}MB`;
+
+                if (problemRow.file_io) {
+                    pidConfigYamlMap[pid].filename = path.basename(problemRow.file_io_input_name!);
+                }
+
+                if (problemRow.additional_file_id) {
+                    const additionalFileRows: [{ md5: string }] = await conn.query(
+                        "SELECT * FROM `file` WHERE `id` = ?",
+                        [problemRow.additional_file_id],
+                    );
+                    if (additionalFileRows.length) {
+                        const [afdoc] = additionalFileRows;
+                        additionalFilePidMap[afdoc.md5] = pid;
+                    }
+                }
+
+                levelPidMap[problemRow.allow_level].push(pid);
+            } catch (e) {
+                report({ message: `Failed to migrate problem ${pid}: ${(e as Error)?.message}` });
+            }
         }
     }
     report({ message: "problem finished" });
@@ -252,12 +257,16 @@ async function migrateAdditionalFiles(ctx: IMigrateProblemContext): Promise<void
         const md5 = file.name;
         if (!additionalFilePidMap[md5]) continue;
         const pid = additionalFilePidMap[md5];
-        await ProblemModel.addAdditionalFile(
-            problemDomain,
-            pidMap[pid],
-            `${pid}_additional_file.zip`,
-            path.join(additionalFilePath, file.name),
-        );
+        try {
+            await ProblemModel.addAdditionalFile(
+                problemDomain,
+                pidMap[pid],
+                `${pid}_additional_file.zip`,
+                path.join(additionalFilePath, file.name),
+            );
+        } catch (e) {
+            report({ message: `Failed to migrate additional file for ${pid}: ${(e as Error)?.message}` });
+        }
     }
 
     report({ message: "additional files finished" });
@@ -283,95 +292,106 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
         const pdoc = await ProblemModel.get(problemDomain, pidMap[pid], undefined, true);
         if (!pdoc) continue;
 
-        report({ message: `Syncing testdata for ${pdoc.pid}` });
+        try {
+            report({ message: `Syncing testdata for ${pdoc.pid}` });
 
-        for (const testdataFile of testdataFiles) {
-            if (testdataFile.isDirectory()) continue;
+            for (const testdataFile of testdataFiles) {
+                if (testdataFile.isDirectory()) continue;
+
+                await ProblemModel.addTestdata(
+                    problemDomain,
+                    pdoc.docId,
+                    testdataFile.name,
+                    path.join(testdataDirPath, testdataFile.name),
+                );
+
+                if (testdataFile.name.startsWith("spj_")) {
+                    report({ message: `Syncing spj for ${pdoc.pid}` });
+
+                    const spjFilePath = path.join(testdataDirPath, testdataFile.name);
+                    const spjContent = fs.readFileSync(spjFilePath, "utf8");
+                    const isTestLib = spjContent.includes("registerTestlibCmd");
+                    // spj_{lang}.xxx
+                    const lang =
+                        langMap[testdataFile.name.split("spj_")[1].split(".")[0] as keyof typeof langMap] || "auto";
+                    configYaml.checker_type = isTestLib ? "testlib" : "syzoj";
+                    configYaml.checker = {
+                        file: testdataFile.name,
+                        lang,
+                    };
+                }
+            }
+
+            const hasDataYml = testdataFiles.findIndex((i) => i.name === "data.yml") !== -1;
+            if (hasDataYml) {
+                report({ message: `Transferring data.yml for ${pdoc.pid}` });
+                const syzojConfigYmlPath = path.join(testdataDirPath, "data.yml");
+                const syzojConfigYml = yaml.load(
+                    fs.readFileSync(syzojConfigYmlPath, "utf8").toString(),
+                ) as ISyzojConfigYml;
+                if (syzojConfigYml.specialJudge) {
+                    report({ message: `Syncing spj config for ${pdoc.pid}` });
+
+                    const spjFilePath = path.join(testdataDirPath, syzojConfigYml.specialJudge.fileName);
+                    const spjContent = fs.readFileSync(spjFilePath, "utf8");
+                    const isTestLib = spjContent.includes("registerTestlibCmd");
+                    configYaml.checker_type = isTestLib ? "testlib" : "syzoj";
+                    configYaml.checker = {
+                        file: syzojConfigYml.specialJudge.fileName,
+                        lang: langMap[syzojConfigYml.specialJudge.language] || "auto",
+                    };
+                }
+
+                if (syzojConfigYml.subtasks && syzojConfigYml.inputFile && syzojConfigYml.outputFile) {
+                    const { inputFile, outputFile } = syzojConfigYml;
+                    configYaml.subtasks = syzojConfigYml.subtasks.map((subtask, index) => ({
+                        score: subtask.score,
+                        id: index + 1,
+                        type: subtask.type,
+                        cases: subtask.cases.map((caseItem) => ({
+                            input: inputFile.replace("#", `${caseItem}`),
+                            output: outputFile.replace("#", `${caseItem}`),
+                        })),
+                    }));
+                }
+
+                if (syzojConfigYml.extraSourceFiles && syzojConfigYml.extraSourceFiles.length > 0) {
+                    for (const { name: sourceName, dest } of syzojConfigYml.extraSourceFiles[0].files) {
+                        await ProblemModel.addTestdata(
+                            problemDomain,
+                            pdoc.docId,
+                            dest,
+                            path.join(testdataDirPath, sourceName),
+                        );
+                    }
+                    configYaml.user_extra_files = syzojConfigYml.extraSourceFiles[0].files.map((x) => x.dest);
+                }
+
+                if (configYaml.type === "submit_answer") {
+                    configYaml.subType = "multi";
+                    configYaml.filename = syzojConfigYml.outputFile;
+                }
+
+                if (syzojConfigYml.interactor) {
+                    report({ message: `Syncing interactor config for ${testdataDir.name}` });
+                    configYaml.type = "interactive";
+
+                    configYaml.interactor = {
+                        file: syzojConfigYml.interactor.fileName,
+                        lang: langMap[syzojConfigYml.interactor.language] || "auto",
+                    };
+                }
+            }
 
             await ProblemModel.addTestdata(
                 problemDomain,
                 pdoc.docId,
-                testdataFile.name,
-                path.join(testdataDirPath, testdataFile.name),
+                "config.yaml",
+                Buffer.from(yaml.dump(configYaml)),
             );
-
-            if (testdataFile.name.startsWith("spj_")) {
-                report({ message: `Syncing spj for ${pdoc.pid}` });
-
-                const spjFilePath = path.join(testdataDirPath, testdataFile.name);
-                const spjContent = fs.readFileSync(spjFilePath, "utf8");
-                const isTestLib = spjContent.includes("registerTestlibCmd");
-                // spj_{lang}.xxx
-                const lang =
-                    langMap[testdataFile.name.split("spj_")[1].split(".")[0] as keyof typeof langMap] || "auto";
-                configYaml.checker_type = isTestLib ? "testlib" : "syzoj";
-                configYaml.checker = {
-                    file: testdataFile.name,
-                    lang,
-                };
-            }
+        } catch (e) {
+            report({ message: `Failed to migrate testdata for ${pid}: ${(e as Error)?.message}` });
         }
-
-        const hasDataYml = testdataFiles.findIndex((i) => i.name === "data.yml") !== -1;
-        if (hasDataYml) {
-            report({ message: `Transferring data.yml for ${pdoc.pid}` });
-            const syzojConfigYmlPath = path.join(testdataDirPath, "data.yml");
-            const syzojConfigYml = yaml.load(fs.readFileSync(syzojConfigYmlPath, "utf8").toString()) as ISyzojConfigYml;
-            if (syzojConfigYml.specialJudge) {
-                report({ message: `Syncing spj config for ${pdoc.pid}` });
-
-                const spjFilePath = path.join(testdataDirPath, syzojConfigYml.specialJudge.fileName);
-                const spjContent = fs.readFileSync(spjFilePath, "utf8");
-                const isTestLib = spjContent.includes("registerTestlibCmd");
-                configYaml.checker_type = isTestLib ? "testlib" : "syzoj";
-                configYaml.checker = {
-                    file: syzojConfigYml.specialJudge.fileName,
-                    lang: langMap[syzojConfigYml.specialJudge.language] || "auto",
-                };
-            }
-
-            if (syzojConfigYml.subtasks && syzojConfigYml.inputFile && syzojConfigYml.outputFile) {
-                const { inputFile, outputFile } = syzojConfigYml;
-                configYaml.subtasks = syzojConfigYml.subtasks.map((subtask, index) => ({
-                    score: subtask.score,
-                    id: index + 1,
-                    type: subtask.type,
-                    cases: subtask.cases.map((caseItem) => ({
-                        input: inputFile.replace("#", `${caseItem}`),
-                        output: outputFile.replace("#", `${caseItem}`),
-                    })),
-                }));
-            }
-
-            if (syzojConfigYml.extraSourceFiles && syzojConfigYml.extraSourceFiles.length > 0) {
-                for (const { name: sourceName, dest } of syzojConfigYml.extraSourceFiles[0].files) {
-                    await ProblemModel.addTestdata(
-                        problemDomain,
-                        pdoc.docId,
-                        dest,
-                        path.join(testdataDirPath, sourceName),
-                    );
-                }
-                configYaml.user_extra_files = syzojConfigYml.extraSourceFiles[0].files.map((x) => x.dest);
-            }
-
-            if (configYaml.type === "submit_answer") {
-                configYaml.subType = "multi";
-                configYaml.filename = syzojConfigYml.outputFile;
-            }
-
-            if (syzojConfigYml.interactor) {
-                report({ message: `Syncing interactor config for ${testdataDir.name}` });
-                configYaml.type = "interactive";
-
-                configYaml.interactor = {
-                    file: syzojConfigYml.interactor.fileName,
-                    lang: langMap[syzojConfigYml.interactor.language] || "auto",
-                };
-            }
-        }
-
-        await ProblemModel.addTestdata(problemDomain, pdoc.docId, "config.yaml", Buffer.from(yaml.dump(configYaml)));
     }
 }
 
