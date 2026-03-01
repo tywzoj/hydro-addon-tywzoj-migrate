@@ -161,7 +161,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
     const {
         conn,
         report,
-        args: { rerun, problemDomain },
+        args: { problemDomain },
         tagIdNameMap,
         pidMap,
         pidConfigYamlMap,
@@ -182,10 +182,8 @@ async function migrateContent(ctx: IMigrateProblemContext) {
             const pid = `P${problemRow.id}`;
 
             try {
-                if (rerun) {
-                    const pdoc = await ProblemModel.get(problemDomain, pid);
-                    if (pdoc) pidMap[pid] = pdoc.docId;
-                }
+                const pdoc = await ProblemModel.get(problemDomain, pid);
+                if (pdoc) pidMap[pid] = pdoc.docId;
 
                 if (!pidMap[pid]) {
                     const content = buildContent({

@@ -14,7 +14,6 @@ export interface IMigrateArgs {
     dataDir: string;
     modules: E_MigrateModules[];
     randomMail: E_RandomMail;
-    rerun: boolean;
 }
 
 export interface IMigrateContext {
