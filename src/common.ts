@@ -23,5 +23,9 @@ export function shouldMigrateModule(
         args: { modules },
         migratedModules,
     } = ctx;
-    return modules.includes(module) && deps.every((dep) => migratedModules.includes(dep));
+    return (
+        !migratedModules.includes(module) &&
+        modules.includes(module) &&
+        deps.every((dep) => migratedModules.includes(dep))
+    );
 }
