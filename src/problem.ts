@@ -338,7 +338,6 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
 
             const hasDataYml = testdataFiles.findIndex((i) => i.name === "data.yml") !== -1;
             if (hasDataYml) {
-                report({ message: `Transferring data.yml for ${pdoc.pid}` });
                 const syzojConfigYmlPath = path.join(testdataDirPath, "data.yml");
                 const syzojConfigYml = yaml.load(
                     fs.readFileSync(syzojConfigYmlPath, "utf8").toString(),

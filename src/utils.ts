@@ -1,7 +1,7 @@
 export function percentProgressor(
     total: number,
     onProgress: (percent: number, doneCount: number) => void,
-    step: number = 1,
+    step: number = 10,
 ): {
     singleTaskDone: () => void;
     manualTriggerOnProgress: () => void;
@@ -15,7 +15,7 @@ export function percentProgressor(
             return;
         }
         const percent = Math.floor((doneCount / total) * 100);
-        if (percent !== lastPercent && percent % step === 0) {
+        if (percent !== lastPercent && (percent % step === 0 || percent === 100)) {
             lastPercent = percent;
             onProgress(percent, doneCount);
         }
