@@ -151,6 +151,7 @@ interface IMigrateProblemContext extends IMigrateContext {
 async function migrateTags(ctx: IMigrateProblemContext): Promise<Record<number, string>> {
     const { conn, report, tagIdNameMap } = ctx;
 
+    report({ message: "Start migrating problem tags" });
     const allTags: IProblemTag[] = await conn.query("SELECT * FROM `problem_tag`");
     for (const tag of allTags) tagIdNameMap[tag.id] = tag.name;
     report({ message: "tag finished" });
@@ -170,10 +171,10 @@ async function migrateContent(ctx: IMigrateProblemContext) {
         levelPidMap,
     } = ctx;
     const migrateSubmission = ctx.args.modules.includes("submission");
-    const [{ "count(*)": pcount }] = await conn.query<[{ "count(*)": number }]>("SELECT count(*) FROM `problem`");
+    const [{ "count(*)": pcount }] = await conn.query<[{ "count(*)": bigint }]>("SELECT count(*) FROM `problem`");
     const step = 50;
     const pageCount = Math.ceil(Number(pcount) / step);
-    const { singleTaskDone } = percentProgressor(pcount, (percent) =>
+    const { singleTaskDone } = percentProgressor(Number(pcount), (percent) =>
         report({ message: `Migrate Problem Content Progress: ${percent}%` }),
     );
 
