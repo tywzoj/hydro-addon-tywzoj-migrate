@@ -10,6 +10,10 @@ export function percentProgressor(
     let lastPercent = -1;
 
     function updateProgress() {
+        if (total === 0) {
+            onProgress(100);
+            return;
+        }
         const percent = Math.floor((doneCount / total) * 100);
         if (percent !== lastPercent && percent % step === 0) {
             lastPercent = percent;
