@@ -4,6 +4,7 @@ import yaml from "js-yaml";
 import path from "path";
 
 import type { IMigrateContext } from "./types";
+import { percentProgressor } from "./utils";
 
 interface IProblemTag {
     id: number;
@@ -172,6 +173,9 @@ async function migrateContent(ctx: IMigrateProblemContext) {
     const [{ "count(*)": pcount }] = await conn.query<[{ "count(*)": number }]>("SELECT count(*) FROM `problem`");
     const step = 50;
     const pageCount = Math.ceil(Number(pcount) / step);
+    const { singleTaskDone } = percentProgressor(pcount, (percent) =>
+        report({ message: `Migrate Problem Content Progress: ${percent}%` }),
+    );
 
     for (let pageId = 0; pageId < pageCount; pageId++) {
         const problemRows: IProblemRow[] = await conn.query("SELECT * FROM `problem` LIMIT ?, ?", [
@@ -180,7 +184,6 @@ async function migrateContent(ctx: IMigrateProblemContext) {
         ]);
         for (const problemRow of problemRows) {
             const pid = `P${problemRow.id}`;
-            report({ message: `Migrating problem ${pid}` });
 
             try {
                 const pdoc = await ProblemModel.get(problemDomain, pid);
@@ -232,9 +235,10 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                 }
 
                 levelPidMap[problemRow.allow_level].push(pid);
-                report({ message: `Migrated problem ${pid}` });
             } catch (e) {
                 report({ message: `Failed to migrate problem ${pid}: ${(e as Error)?.message}` });
+            } finally {
+                singleTaskDone();
             }
         }
     }
@@ -253,6 +257,11 @@ async function migrateAdditionalFiles(ctx: IMigrateProblemContext): Promise<void
 
     const additionalFilePath = path.join(dataDir, "additional_file");
     const additionalFiles = await fs.readdir(additionalFilePath, { withFileTypes: true });
+
+    const { singleTaskDone } = percentProgressor(additionalFiles.length, (percent) =>
+        report({ message: `Migrate Additional Files Progress: ${percent}%` }),
+    );
+
     for (const file of additionalFiles) {
         if (file.isDirectory()) continue;
         const md5 = file.name;
@@ -267,6 +276,8 @@ async function migrateAdditionalFiles(ctx: IMigrateProblemContext): Promise<void
             );
         } catch (e) {
             report({ message: `Failed to migrate additional file for ${pid}: ${(e as Error)?.message}` });
+        } finally {
+            singleTaskDone();
         }
     }
 
@@ -284,6 +295,11 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
     // Migrate testdata and config.yaml
     const testdataPath = path.join(dataDir, "testdata");
     const testdataDirs = await fs.readdir(testdataPath, { withFileTypes: true });
+
+    const { singleTaskDone } = percentProgressor(testdataDirs.length, (percent) =>
+        report({ message: `Migrate Testdata Progress: ${percent}%` }),
+    );
+
     for (const testdataDir of testdataDirs) {
         if (!testdataDir.isDirectory()) continue;
         const pid = `P${testdataDir.name}`;
@@ -294,8 +310,6 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
         if (!pdoc) continue;
 
         try {
-            report({ message: `Syncing testdata for ${pdoc.pid}` });
-
             for (const testdataFile of testdataFiles) {
                 if (testdataFile.isDirectory()) continue;
 
@@ -307,8 +321,6 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
                 );
 
                 if (testdataFile.name.startsWith("spj_")) {
-                    report({ message: `Syncing spj for ${pdoc.pid}` });
-
                     const spjFilePath = path.join(testdataDirPath, testdataFile.name);
                     const spjContent = fs.readFileSync(spjFilePath, "utf8");
                     const isTestLib = spjContent.includes("registerTestlibCmd");
@@ -331,8 +343,6 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
                     fs.readFileSync(syzojConfigYmlPath, "utf8").toString(),
                 ) as ISyzojConfigYml;
                 if (syzojConfigYml.specialJudge) {
-                    report({ message: `Syncing spj config for ${pdoc.pid}` });
-
                     const spjFilePath = path.join(testdataDirPath, syzojConfigYml.specialJudge.fileName);
                     const spjContent = fs.readFileSync(spjFilePath, "utf8");
                     const isTestLib = spjContent.includes("registerTestlibCmd");
@@ -374,7 +384,6 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
                 }
 
                 if (syzojConfigYml.interactor) {
-                    report({ message: `Syncing interactor config for ${testdataDir.name}` });
                     configYaml.type = "interactive";
 
                     configYaml.interactor = {
@@ -392,6 +401,8 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
             );
         } catch (e) {
             report({ message: `Failed to migrate testdata for ${pid}: ${(e as Error)?.message}` });
+        } finally {
+            singleTaskDone();
         }
     }
 }
@@ -403,6 +414,8 @@ async function migrateDomainCopy(ctx: IMigrateProblemContext) {
         levelPidMap,
         pidMap,
     } = ctx;
+
+    report({ message: "Start copying problem domain to level domains" });
 
     for (const [level, targetDomain] of Object.entries({
         "0": "system",
