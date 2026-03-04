@@ -174,8 +174,8 @@ async function migrateContent(ctx: IMigrateProblemContext) {
     const [{ "count(*)": pcount }] = await conn.query<[{ "count(*)": bigint }]>("SELECT count(*) FROM `problem`");
     const step = 50;
     const pageCount = Math.ceil(Number(pcount) / step);
-    const { singleTaskDone } = percentProgressor(Number(pcount), (percent) =>
-        report({ message: `Migrate Problem Content Progress: ${percent}%` }),
+    const { singleTaskDone } = percentProgressor(Number(pcount), (percent, doneCount) =>
+        report({ message: `Migrate Problem Content Progress: ${percent}% (${doneCount}/${Number(pcount)})` }),
     );
 
     for (let pageId = 0; pageId < pageCount; pageId++) {
@@ -259,8 +259,8 @@ async function migrateAdditionalFiles(ctx: IMigrateProblemContext): Promise<void
     const additionalFilePath = path.join(dataDir, "additional_file");
     const additionalFiles = await fs.readdir(additionalFilePath, { withFileTypes: true });
 
-    const { singleTaskDone } = percentProgressor(additionalFiles.length, (percent) =>
-        report({ message: `Migrate Additional Files Progress: ${percent}%` }),
+    const { singleTaskDone } = percentProgressor(additionalFiles.length, (percent, doneCount) =>
+        report({ message: `Migrate Additional Files Progress: ${percent}% (${doneCount}/${additionalFiles.length})` }),
     );
 
     for (const file of additionalFiles) {
@@ -297,8 +297,8 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
     const testdataPath = path.join(dataDir, "testdata");
     const testdataDirs = await fs.readdir(testdataPath, { withFileTypes: true });
 
-    const { singleTaskDone } = percentProgressor(testdataDirs.length, (percent) =>
-        report({ message: `Migrate Testdata Progress: ${percent}%` }),
+    const { singleTaskDone } = percentProgressor(testdataDirs.length, (percent, doneCount) =>
+        report({ message: `Migrate Testdata Progress: ${percent}% (${doneCount}/${testdataDirs.length})` }),
     );
 
     for (const testdataDir of testdataDirs) {
