@@ -303,6 +303,7 @@ async function migrateTestdata(ctx: IMigrateProblemContext) {
     for (const testdataDir of testdataDirs) {
         if (!testdataDir.isDirectory()) continue;
         const pid = `P${testdataDir.name}`;
+        if (!pidMap[pid]) continue;
         const configYaml = pidConfigYamlMap[pid];
         const testdataDirPath = path.join(testdataPath, testdataDir.name);
         const testdataFiles = await fs.readdir(testdataDirPath, { withFileTypes: true });
