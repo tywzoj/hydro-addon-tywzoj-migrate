@@ -200,7 +200,6 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                     });
                     const newPid = await ProblemModel.add(problemDomain, pid, problemRow.title, content, 1);
                     pidMap[pid] = newPid;
-                    report({ message: `Created new problem ${pid}` });
                 }
 
                 const tagRows: { tag_id: number }[] = await conn.query(
