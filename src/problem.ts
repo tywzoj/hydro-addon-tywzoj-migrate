@@ -180,6 +180,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
         ]);
         for (const problemRow of problemRows) {
             const pid = `P${problemRow.id}`;
+            report({ message: `Migrating problem ${pid}` });
 
             try {
                 const pdoc = await ProblemModel.get(problemDomain, pid);
@@ -195,6 +196,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                     });
                     const newPid = await ProblemModel.add(problemDomain, pid, problemRow.title, content, 1);
                     pidMap[pid] = newPid;
+                    report({ message: `Created new problem ${pid}` });
                 }
 
                 const tagRows: { tag_id: number }[] = await conn.query(
@@ -230,6 +232,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                 }
 
                 levelPidMap[problemRow.allow_level].push(pid);
+                report({ message: `Migrated problem ${pid}` });
             } catch (e) {
                 report({ message: `Failed to migrate problem ${pid}: ${(e as Error)?.message}` });
             }
