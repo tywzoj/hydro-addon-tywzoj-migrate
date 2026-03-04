@@ -217,7 +217,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                 pidConfigYamlMap[pid].memory = `${problemRow.memory_limit}MB`;
 
                 if (problemRow.file_io) {
-                    pidConfigYamlMap[pid].filename = path.basename(problemRow.file_io_input_name!);
+                    pidConfigYamlMap[pid].filename = path.basename(problemRow.file_io_input_name!, ".in");
                 }
 
                 if (problemRow.additional_file_id) {
