@@ -1,6 +1,6 @@
 export function percentProgressor(
     total: number,
-    onProgress: (percent: number) => void,
+    onProgress: (percent: number, doneCount: number) => void,
     step: number = 1,
 ): {
     singleTaskDone: () => void;
@@ -11,13 +11,13 @@ export function percentProgressor(
 
     function updateProgress() {
         if (total === 0) {
-            onProgress(100);
+            onProgress(100, doneCount);
             return;
         }
         const percent = Math.floor((doneCount / total) * 100);
         if (percent !== lastPercent && percent % step === 0) {
             lastPercent = percent;
-            onProgress(percent);
+            onProgress(percent, doneCount);
         }
     }
 
@@ -30,7 +30,7 @@ export function percentProgressor(
             if (lastPercent === -1) {
                 updateProgress();
             } else {
-                onProgress(lastPercent);
+                onProgress(lastPercent, doneCount);
             }
         },
     };
