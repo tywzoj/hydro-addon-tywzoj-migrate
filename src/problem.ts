@@ -163,7 +163,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
     const {
         conn,
         report,
-        args: { problemDomain },
+        args: { problemDomain, owner },
         tagIdNameMap,
         pidMap,
         pidConfigYamlMap,
@@ -198,7 +198,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                         samples: [],
                         hint: problemRow.limit_and_hint,
                     });
-                    const newPid = await ProblemModel.add(problemDomain, pid, problemRow.title, content, 1);
+                    const newPid = await ProblemModel.add(problemDomain, pid, problemRow.title, content, owner);
                     pidMap[pid] = newPid;
                 }
 

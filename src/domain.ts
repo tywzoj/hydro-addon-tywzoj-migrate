@@ -10,14 +10,14 @@ declare module "hydrooj" {
 
 export async function ensureDomain(ctx: IMigrateContext) {
     const {
-        args: { problemDomain, levelDomainMapping },
+        args: { problemDomain, levelDomainMapping, owner },
     } = ctx;
 
     const problemDomainDoc = await DomainModel.get(problemDomain);
     if (!problemDomainDoc) {
         const domainId = await DomainModel.add(
             problemDomain,
-            1,
+            owner,
             "Problem",
             "The domain for migrated problems from TYWZOJ",
         );

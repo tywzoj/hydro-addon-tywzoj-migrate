@@ -61,6 +61,7 @@ export function apply(ctx: Context) {
                 6: "level_6",
             }),
             randomMail: Schema.union(["never", "needed", "always"]).default("never"),
+            owner: Schema.number().default(1),
         }),
         migrate,
     );
