@@ -1,4 +1,16 @@
 {
+  "name": "hydro-addon-tywzoj-migrate",
+  "version": "1.0.0",
+  "description": "TYWZOJ to Hydro Migration Script",
+  "main": "index.ts",
+  "author": "Antares <antares.mi@outlook.com>",
+  "license": "AGPL-3.0-only",
+  "packageManager": "yarn@1.22.22",
+  "dependencies": {
+    "fs-extra": "^11.3.3",
+    "js-yaml": "^4.1.1",
+    "mariadb": "^3.5.1"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/fs-extra": "^11.0.4",
@@ -13,17 +25,5 @@
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
-  },
-  "dependencies": {
-    "fs-extra": "^11.3.3",
-    "js-yaml": "^4.1.1",
-    "mariadb": "^3.5.1"
-  },
-  "packageManager": "yarn@1.22.22",
-  "name": "hydro-addon-tywzoj-migrate",
-  "version": "1.0.0",
-  "description": "TYWZOJ to Hydro Migration Script",
-  "main": "index.ts",
-  "author": "Antares <antares.mi@outlook.com>",
-  "license": "MIT"
+  }
 }
