@@ -4,6 +4,7 @@ import { Schema } from "hydrooj";
 import { createContext, shouldMigrateModule } from "./common";
 import { ensureDomain } from "./domain";
 import { migrateProblem } from "./problem";
+import { applyRenameTags } from "./tag";
 import type { IMigrateArgs } from "./types";
 
 async function migrate(args: IMigrateArgs, report: (data: any) => void): Promise<boolean> {
@@ -65,4 +66,6 @@ export function apply(ctx: Context) {
         }),
         migrate,
     );
+
+    applyRenameTags(ctx);
 }
