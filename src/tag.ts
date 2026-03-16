@@ -6,7 +6,7 @@ export function applyRenameTags(ctx: Context) {
         "rename problem tags",
         Schema.object({
             domainIds: Schema.array(Schema.string()).default(["system"]),
-            tagMapping: Schema.any().default({}),
+            tagMapping: Schema.any().required(),
         }),
         async (args, report: (data: any) => void) => {
             const domainIds =
@@ -30,16 +30,20 @@ export function applyRenameTags(ctx: Context) {
                     for (const pdoc of pdocs) {
                         try {
                             let modified = false;
-                            const newTags = pdoc.tag
-                                .map((tag) => {
-                                    const normalizedTag = tag.trim().toLowerCase();
-                                    if (args.tagMapping[normalizedTag]) {
-                                        modified = true;
-                                        return args.tagMapping[normalizedTag];
-                                    }
-                                    return [tag];
-                                })
-                                .flat();
+                            const newTags = Array.from(
+                                new Set(
+                                    pdoc.tag
+                                        .map((tag) => {
+                                            const normalizedTag = tag.trim().toLowerCase();
+                                            if (args.tagMapping[normalizedTag]) {
+                                                modified = true;
+                                                return args.tagMapping[normalizedTag];
+                                            }
+                                            return [tag];
+                                        })
+                                        .flat(),
+                                ),
+                            );
 
                             if (modified) {
                                 await ProblemModel.edit(domainId, pdoc.docId, { tag: newTags });
