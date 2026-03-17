@@ -35,9 +35,9 @@ export function applyRenameTags(ctx: Context) {
                                     pdoc.tag
                                         .map((tag) => {
                                             const normalizedTag = tag.trim().toLowerCase();
-                                            if (args.tagMapping[normalizedTag]) {
+                                            if (args.tagMapping[tag] || args.tagMapping[normalizedTag]) {
                                                 modified = true;
-                                                return args.tagMapping[normalizedTag];
+                                                return args.tagMapping[tag] || args.tagMapping[normalizedTag];
                                             }
                                             return [tag];
                                         })
