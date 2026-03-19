@@ -3,7 +3,7 @@ import { buildContent, ProblemModel } from "hydrooj";
 import yaml from "js-yaml";
 import path from "path";
 
-import type { IMigrateContext } from "./types";
+import type { IMigrateContext, TLevel } from "./types";
 import { percentProgressor } from "./utils";
 
 interface IProblemTag {
@@ -145,7 +145,7 @@ interface IMigrateProblemContext extends IMigrateContext {
     pidMap: Record<string, number>;
     pidConfigYamlMap: Record<string, IProblemConfigYaml>;
     additionalFilePidMap: Record<string, string>;
-    levelPidMap: Record<number, string[]>;
+    levelPidMap: Record<TLevel, string[]>;
 }
 
 async function migrateTags(ctx: IMigrateProblemContext): Promise<Record<number, string>> {
@@ -234,7 +234,7 @@ async function migrateContent(ctx: IMigrateProblemContext) {
                     }
                 }
 
-                levelPidMap[problemRow.allow_level].push(pid);
+                levelPidMap[`${problemRow.allow_level}`].push(pid);
             } catch (e) {
                 report({ message: `Failed to migrate problem ${pid}: ${(e as Error)?.message}` });
             } finally {
@@ -421,7 +421,7 @@ async function migrateDomainCopy(ctx: IMigrateProblemContext) {
         "0": "system",
         ...levelDomainMapping,
     })) {
-        const pids = levelPidMap[Number(level)];
+        const pids = levelPidMap[level as keyof typeof levelDomainMapping];
         for (const pid of pids) {
             const pdoc = await ProblemModel.get(problemDomain, pidMap[pid], undefined, true);
             if (!pdoc) continue;
